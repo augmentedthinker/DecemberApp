@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Christopher & Co. - Color Shifter</title>
+    
+    <!-- React & ReactDOM (The Engine) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel (The Translator - lets us write JSX in the browser) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS (The Styling) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Tailwind Config for specific animations -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'spin-slow': 'spin 3s linear infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom scrollbar hiding if needed */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-slate-900">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- Inline Icons to avoid dependency issues ---
+        
+        const IconPalette = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/>
+                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+            </svg>
+        );
+
+        const IconSend = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+        );
+
+        const IconType = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/>
+            </svg>
+        );
+
+        const IconImage = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+            </svg>
+        );
+
+        const IconLoader = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+            </svg>
+        );
+
+        const IconSmartphone = ({ size = 20, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                <line x1="12" y1="18" x2="12.01" y2="18" />
+            </svg>
+        );
+
+        const IconMonitor = ({ size = 20, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                <line x1="8" y1="21" x2="16" y2="21" />
+                <line x1="12" y1="17" x2="12" y2="21" />
+            </svg>
+        );
+
+        // --- Main App Component ---
+
+        function App() {
+            const [inputValue, setInputValue] = useState('');
+            const [bgColor, setBgColor] = useState('#f3f4f6');
+            const [patternValue, setPatternValue] = useState(null);
+            const [bgImage, setBgImage] = useState(null);
+            const [isLoading, setIsLoading] = useState(false);
+            const [isPortrait, setIsPortrait] = useState(true);
+
+            const handleSubmit = (e) => {
+                if (e) e.preventDefault();
+                const val = inputValue.trim();
+                if (!val) return;
+
+                // 1. Check if Number
+                const isNumber = !isNaN(val) && !val.startsWith('#');
+
+                if (isNumber) {
+                    setPatternValue(val);
+                    setBgImage(null);
+                    setBgColor('#f3f4f6');
+                    return;
+                }
+
+                // 2. Check if Valid CSS Color
+                const isColor = CSS.supports('color', val);
+
+                if (isColor) {
+                    setBgColor(val);
+                    setPatternValue(null);
+                    setBgImage(null);
+                } else {
+                    // 3. Assume Image Intent (AI Generation)
+                    setIsLoading(true);
+                    setPatternValue(null);
+                    
+                    // Determine dimensions based on orientation toggle
+                    const width = isPortrait ? 768 : 1024;
+                    const height = isPortrait ? 1024 : 768;
+                    
+                    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(val)}?width=${width}&height=${height}&nologo=true`;
+                    
+                    const img = new Image();
+                    img.src = imageUrl;
+                    img.onload = () => {
+                        setBgImage(imageUrl);
+                        setBgColor('#1a1a1a'); 
+                        setIsLoading(false);
+                    };
+                    img.onerror = () => {
+                        setIsLoading(false);
+                        alert("Could not generate image. Please try again.");
+                    };
+                }
+            };
+
+            const gridItems = new Array(150).fill(patternValue);
+
+            return (
+                <div 
+                    className="relative min-h-screen w-full flex flex-col items-center justify-center transition-all duration-700 ease-in-out overflow-hidden p-4 bg-cover bg-center bg-no-repeat"
+                    style={{ 
+                        backgroundColor: bgColor,
+                        backgroundImage: bgImage ? `url(${bgImage})` : 'none'
+                    }}
+                >
+                    {/* Dark Overlay for Image Mode */}
+                    {bgImage && <div className="absolute inset-0 bg-black/40 transition-opacity duration-700"></div>}
+
+                    {/* Number Pattern Layer */}
+                    {patternValue && (
+                        <div className="absolute inset-0 flex flex-wrap content-center justify-center overflow-hidden opacity-10 pointer-events-none select-none z-0">
+                            {gridItems.map((item, i) => (
+                                <span key={i} className="text-4xl font-black m-4 transform rotate-[-12deg]">
+                                    {item}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Main Card UI */}
+                    <div className="relative z-10 bg-white/30 backdrop-blur-xl p-8 rounded-2xl shadow-2xl max-w-md w-full border border-white/20 transition-all duration-300">
+                        
+                        {/* Orientation Toggle */}
+                        <div className="absolute top-4 right-4 flex bg-white/40 backdrop-blur-md rounded-lg p-1 border border-white/30 shadow-sm">
+                            <button 
+                                onClick={() => setIsPortrait(true)}
+                                className={`p-2 rounded-md transition-all ${isPortrait ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                                title="Portrait Mode"
+                            >
+                                <IconSmartphone size={16} />
+                            </button>
+                            <button 
+                                onClick={() => setIsPortrait(false)}
+                                className={`p-2 rounded-md transition-all ${!isPortrait ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                                title="Landscape Mode"
+                            >
+                                <IconMonitor size={16} />
+                            </button>
+                        </div>
+
+                        <div className="text-center mb-8 mt-4">
+                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-900/80 text-white mb-4 shadow-lg ring-4 ring-white/30 backdrop-blur-sm">
+                                {isLoading ? (
+                                    <IconLoader size={24} className="animate-spin" />
+                                ) : patternValue ? (
+                                    <IconType size={24} />
+                                ) : bgImage ? (
+                                    <IconImage size={24} />
+                                ) : (
+                                    <IconPalette size={24} />
+                                )}
+                            </div>
+                            <h1 className="text-2xl font-bold text-slate-900 drop-shadow-sm">
+                                {patternValue ? 'Number Grid' : bgImage ? 'AI Vision' : 'Color Shifter'}
+                            </h1>
+                            <p className="text-slate-800 font-medium mt-2 text-sm drop-shadow-sm">
+                                {isPortrait ? 'Portrait Mode' : 'Landscape Mode'}
+                            </p>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div className="relative group">
+                                <input
+                                    type="text"
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    disabled={isLoading}
+                                    placeholder="What do you want to see?"
+                                    className="w-full px-4 py-3 bg-white/60 border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all outline-none text-slate-900 placeholder:text-slate-600 font-medium disabled:opacity-50 backdrop-blur-sm"
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={isLoading || !inputValue}
+                                className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] disabled:hover:scale-100 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                            >
+                                {isLoading ? (
+                                    <span>Generating...</span>
+                                ) : (
+                                    <>
+                                        <span>Update View</span>
+                                        <IconSend size={18} />
+                                    </>
+                                )}
+                            </button>
+                        </form>
+
+                        <div className="mt-6 text-center space-y-1">
+                            <p className="text-xs text-slate-700 font-bold font-mono drop-shadow-sm">
+                                Current: <span className="text-slate-900">
+                                    {isLoading ? 'Dreaming...' : inputValue || 'Ready'}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
