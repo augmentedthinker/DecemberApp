@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Application - Beta 1.1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Application - Beta 3.0</title>
     
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -15,38 +15,41 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Google Fonts: Space Mono for the Digital/Coding look -->
+    <!-- Google Fonts: Space Mono (Code), VT323 (GameBoy), Press Start 2P (8-bit) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
 
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        'mono-code': ['"Space Mono"', 'monospace'], // New Coding Font
+                        'mono-code': ['"Space Mono"', 'monospace'],
+                        'retro': ['"VT323"', 'monospace'],
+                        'pixel': ['"Press Start 2P"', 'cursive'],
                     },
-                    animation: {
-                        'spin-slow': 'spin 3s linear infinite',
-                        'fade-in': 'fadeIn 0.5s ease-out forwards',
-                        'zoom-in': 'zoomIn 0.3s ease-out forwards',
-                        'pulse-glow': 'pulseGlow 0.5s ease-out',
-                    },
-                    keyframes: {
-                        fadeIn: {
-                            '0%': { opacity: '0', transform: 'translateY(10px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                    colors: {
+                        gb: {
+                            lightest: '#9bbc0f',
+                            light: '#8bac0f',
+                            dark: '#306230',
+                            darkest: '#0f380f',
                         },
-                        zoomIn: {
-                            '0%': { opacity: '0', transform: 'scale(0.95)' },
-                            '100%': { opacity: '1', transform: 'scale(1)' },
-                        },
-                        pulseGlow: {
-                            '0%': { boxShadow: '0 0 0 0 rgba(255, 255, 255, 0.7)' },
-                            '70%': { boxShadow: '0 0 20px 10px rgba(255, 255, 255, 0)' },
-                            '100%': { boxShadow: '0 0 0 0 rgba(255, 255, 255, 0)' },
+                        win: {
+                            gray: '#c0c0c0',
+                            dark: '#808080',
+                            light: '#ffffff',
+                            black: '#000000',
+                            blue: '#000080'
                         }
+                    },
+                    boxShadow: {
+                        'bevel-up': 'inset 2px 2px 0px #ffffff, inset -2px -2px 0px #808080',
+                        'bevel-down': 'inset 2px 2px 0px #808080, inset -2px -2px 0px #ffffff',
+                        'bevel-field': 'inset 2px 2px 0px #808080, inset -2px -2px 0px #ffffff', 
+                        'gameboy': '5px 5px 15px rgba(0,0,0,0.4), -2px -2px 10px rgba(255,255,255,0.1)',
+                        'gb-block': 'inset 2px 2px 0px rgba(255,255,255,0.3), inset -2px -2px 0px rgba(0,0,0,0.3)'
                     }
                 }
             }
@@ -55,14 +58,18 @@
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { overscroll-behavior-y: none; }
+        
+        .gb-text { font-family: 'Press Start 2P', cursive; color: #0f380f; }
+        .digital-font { font-family: 'VT323', monospace; letter-spacing: 2px; }
     </style>
 </head>
-<body class="bg-gray-200 text-slate-900">
+<body class="bg-gray-200 text-slate-900 overflow-hidden fixed inset-0">
 
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useCallback } = React;
 
         // --- Icons ---
         const IconPalette = ({ size=24, className="" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>;
@@ -72,16 +79,510 @@
         const IconMessageSquare = ({ size=20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>;
         const IconEye = ({ size=20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>;
         const IconBot = ({ size=20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>;
-        const IconSettings = ({ size=20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>;
         const IconArrowLeft = ({ size=20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>;
-        const IconHome = ({ size=20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>;
         const IconShoppingBag = ({ size=24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>;
         const IconExternalLink = ({ size=16 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>;
         const IconQrCode = ({ size=24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>;
         const IconDownload = ({ size=24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
-        const IconFileText = ({ size=24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>;
+        const IconGamepad = ({ size=24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="12" x2="10" y2="12"></line><line x1="8" y1="10" x2="8" y2="14"></line><line x1="15" y1="13" x2="15.01" y2="13"></line><line x1="18" y1="11" x2="18.01" y2="11"></line><rect x="2" y="6" width="20" height="12" rx="2"></rect></svg>;
+        const IconBomb = ({ size=16 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="13" r="9"></circle><path d="M14.35 4.65 16.3 2.7a2.41 2.41 0 0 1 3.4 0l1.6 1.6a2.4 2.4 0 0 1 0 3.4l-1.95 1.95"></path><path d="m22 2-1.5 1.5"></path></svg>;
+        const IconGhost = ({ size=24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 10h.01"/><path d="M15 10h.01"/><path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></svg>;
+        const IconGrid = ({ size=24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>;
+        const IconLogOut = ({ size=16 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>;
+
+        // --- GAME COMPONENTS ---
+
+        // TETRIS ENGINE
+        const Tetris = ({ onExit }) => {
+            const COLS = 10;
+            const ROWS = 20;
+            const SHAPES = {
+                I: { shape: [[1,1,1,1]], type: 'I' },
+                J: { shape: [[1,0,0],[1,1,1]], type: 'J' },
+                L: { shape: [[0,0,1],[1,1,1]], type: 'L' },
+                O: { shape: [[1,1],[1,1]], type: 'O' },
+                S: { shape: [[0,1,1],[1,1,0]], type: 'S' },
+                T: { shape: [[0,1,0],[1,1,1]], type: 'T' },
+                Z: { shape: [[1,1,0],[0,1,1]], type: 'Z' }
+            };
+
+            const createGrid = () => Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+
+            const [grid, setGrid] = useState(createGrid());
+            const [activePiece, setActivePiece] = useState(null);
+            const [nextPiece, setNextPiece] = useState(null);
+            const [score, setScore] = useState(0);
+            const [level, setLevel] = useState(0);
+            const [lines, setLines] = useState(0);
+            const [gameOver, setGameOver] = useState(false);
+            const [paused, setPaused] = useState(false);
+            const [resetTrigger, setResetTrigger] = useState(0);
+
+            const gridRef = useRef(grid);
+            const activePieceRef = useRef(activePiece);
+            const nextPieceRef = useRef(null);
+            const gameOverRef = useRef(false);
+            const pausedRef = useRef(false);
+            const scoreRef = useRef(0);
+            const levelRef = useRef(0);
+            
+            const requestRef = useRef();
+            const lastTimeRef = useRef();
+
+            const getRandomPiece = () => {
+                const keys = Object.keys(SHAPES);
+                const type = keys[Math.floor(Math.random() * keys.length)];
+                return {
+                    type,
+                    shape: SHAPES[type].shape,
+                    x: Math.floor(COLS / 2) - Math.ceil(SHAPES[type].shape[0].length / 2),
+                    y: 0
+                };
+            };
+
+            const resetGame = () => {
+                setResetTrigger(t => t + 1);
+            };
+
+            const spawnPiece = useCallback(() => {
+                let piece = nextPieceRef.current;
+                if (!piece) piece = getRandomPiece();
+                
+                const next = getRandomPiece();
+                setNextPiece(next);
+                nextPieceRef.current = next;
+
+                piece.x = Math.floor(COLS / 2) - Math.ceil(piece.shape[0].length / 2);
+                piece.y = 0;
+                
+                return piece;
+            }, []);
+
+            useEffect(() => {
+                const p = getRandomPiece();
+                const n = getRandomPiece();
+                
+                setActivePiece(p);
+                setNextPiece(n);
+                setGrid(createGrid());
+                setGameOver(false);
+                setScore(0);
+                setLevel(0);
+                setLines(0);
+                setPaused(false);
+
+                activePieceRef.current = p;
+                nextPieceRef.current = n;
+                gridRef.current = createGrid();
+                gameOverRef.current = false;
+                pausedRef.current = false;
+                scoreRef.current = 0;
+                levelRef.current = 0;
+                
+                lastTimeRef.current = Date.now();
+                if (requestRef.current) cancelAnimationFrame(requestRef.current);
+                requestRef.current = requestAnimationFrame(gameLoop);
+                
+                return () => {
+                    if (requestRef.current) cancelAnimationFrame(requestRef.current);
+                };
+            }, [resetTrigger]);
+
+            const checkCollision = (piece, g, moveX = 0, moveY = 0) => {
+                for (let y = 0; y < piece.shape.length; y++) {
+                    for (let x = 0; x < piece.shape[y].length; x++) {
+                        if (piece.shape[y][x]) {
+                            const newX = piece.x + x + moveX;
+                            const newY = piece.y + y + moveY;
+                            if (newX < 0 || newX >= COLS || newY >= ROWS || (newY >= 0 && g[newY][newX])) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            };
+
+            const lockPiece = () => {
+                const p = activePieceRef.current;
+                const newGrid = gridRef.current.map(row => [...row]);
+                
+                for (let y = 0; y < p.shape.length; y++) {
+                    for (let x = 0; x < p.shape[y].length; x++) {
+                        if (p.shape[y][x]) {
+                            if (p.y + y < 0) {
+                                gameOverRef.current = true;
+                                setGameOver(true);
+                                return;
+                            }
+                            newGrid[p.y + y][p.x + x] = 1;
+                        }
+                    }
+                }
+
+                let linesCleared = 0;
+                for (let y = ROWS - 1; y >= 0; y--) {
+                    if (newGrid[y].every(cell => cell !== 0)) {
+                        newGrid.splice(y, 1);
+                        newGrid.unshift(Array(COLS).fill(0));
+                        linesCleared++;
+                        y++; 
+                    }
+                }
+                
+                if (linesCleared > 0) {
+                    const pts = linesCleared * 100 * linesCleared;
+                    scoreRef.current += pts;
+                    setScore(scoreRef.current);
+                    
+                    setLines(prev => {
+                        const newLines = prev + linesCleared;
+                        const newLevel = Math.floor(newLines / 10);
+                        levelRef.current = newLevel;
+                        setLevel(newLevel);
+                        return newLines;
+                    });
+                }
+
+                gridRef.current = newGrid;
+                setGrid(newGrid);
+                
+                const newPiece = spawnPiece();
+                if (checkCollision(newPiece, newGrid)) {
+                    gameOverRef.current = true;
+                    setGameOver(true);
+                } else {
+                    setActivePiece(newPiece);
+                    activePieceRef.current = newPiece;
+                }
+            };
+
+            const gameLoop = () => {
+                if (pausedRef.current || gameOverRef.current) { 
+                    requestRef.current = requestAnimationFrame(gameLoop);
+                    return;
+                }
+
+                const now = Date.now();
+                const speed = Math.max(100, 700 - (levelRef.current * 50)); 
+
+                if (now - lastTimeRef.current > speed) { 
+                    if (!checkCollision(activePieceRef.current, gridRef.current, 0, 1)) {
+                        activePieceRef.current = { ...activePieceRef.current, y: activePieceRef.current.y + 1 };
+                        setActivePiece(activePieceRef.current);
+                    } else {
+                        lockPiece();
+                    }
+                    lastTimeRef.current = now;
+                }
+                requestRef.current = requestAnimationFrame(gameLoop);
+            };
+
+            const move = (dir) => {
+                if (gameOverRef.current || pausedRef.current) return;
+                if (!checkCollision(activePieceRef.current, gridRef.current, dir, 0)) {
+                    activePieceRef.current = { ...activePieceRef.current, x: activePieceRef.current.x + dir };
+                    setActivePiece(activePieceRef.current);
+                }
+            };
+
+            const rotate = () => {
+                if (gameOverRef.current || pausedRef.current) return;
+                const p = activePieceRef.current;
+                const newShape = p.shape[0].map((_, i) => p.shape.map(row => row[i]).reverse());
+                const newPiece = { ...p, shape: newShape };
+                if (!checkCollision(newPiece, gridRef.current)) {
+                    activePieceRef.current = newPiece;
+                    setActivePiece(newPiece);
+                }
+            };
+
+            const drop = () => {
+                 if (gameOverRef.current || pausedRef.current) return;
+                 let dropY = 0;
+                 while (!checkCollision(activePieceRef.current, gridRef.current, 0, dropY + 1)) {
+                     dropY++;
+                 }
+                 if(dropY > 0) {
+                    activePieceRef.current = { ...activePieceRef.current, y: activePieceRef.current.y + dropY };
+                    setActivePiece(activePieceRef.current);
+                    lockPiece();
+                 }
+            };
+
+            const togglePause = () => {
+                if (gameOverRef.current) return;
+                const nextState = !pausedRef.current;
+                pausedRef.current = nextState;
+                setPaused(nextState);
+                
+                if (!nextState) {
+                     lastTimeRef.current = Date.now();
+                }
+            };
+
+            const getRenderGrid = () => {
+                const renderGrid = grid.map(row => [...row]);
+                if (activePiece) {
+                    for (let y = 0; y < activePiece.shape.length; y++) {
+                        for (let x = 0; x < activePiece.shape[y].length; x++) {
+                            if (activePiece.shape[y][x]) {
+                                const py = activePiece.y + y;
+                                const px = activePiece.x + x;
+                                if (py >= 0 && py < ROWS && px >= 0 && px < COLS) {
+                                    renderGrid[py][px] = 1; 
+                                }
+                            }
+                        }
+                    }
+                }
+                return renderGrid;
+            };
+
+            return (
+                <div className="flex flex-col items-center justify-center w-full h-full animate-fade-in relative p-0 bg-neutral-800">
+                    <button onClick={onExit} className="fixed top-4 left-4 z-50 bg-red-600 hover:bg-red-700 text-white font-bold font-mono text-xs px-4 py-2 rounded-full shadow-lg flex items-center gap-2 border-2 border-red-800"><IconLogOut size={14}/> EXIT SYSTEM</button>
+
+                    <div className="bg-neutral-300 w-full h-full max-w-lg rounded-t-lg rounded-bl-[30px] rounded-br-lg p-2 shadow-gameboy relative border-b-4 border-r-4 border-neutral-400 flex flex-col">
+                        <div className="bg-slate-700 rounded-t-lg rounded-b-[20px] p-2 pb-2 mb-2 shadow-inner relative flex-1 flex flex-col min-h-0">
+                            <div className="absolute top-[30%] left-1.5 flex flex-col gap-0.5">
+                                <div className="w-1 h-1 rounded-full bg-red-600 animate-pulse shadow-[0_0_5px_rgba(220,38,38,0.8)]"></div>
+                                <span className="text-[5px] text-slate-400 font-sans tracking-tight">BAT</span>
+                            </div>
+                            <div className="bg-[#9ca04c] border-2 border-[#8b9142] shadow-inset-bezel p-1 relative overflow-hidden flex-1 flex items-stretch ml-4 mt-1">
+                                <div className="flex-1 border-r-2 border-[#8b9142]/50 pr-1 flex items-center justify-center h-full">
+                                    <div className="h-full aspect-[1/2] grid grid-cols-10 gap-0 opacity-90 max-w-full border-l-2 border-r-2 border-[#8b9142]/40">
+                                        {getRenderGrid().map((row, y) => (
+                                            row.map((cell, x) => (
+                                                <div key={`${y}-${x}`} className={`w-full h-full ${cell !== 0 ? 'bg-[#0f380f] shadow-gb-block' : 'opacity-10'} border-[0.5px] border-[#8b9142]/20`}></div>
+                                            ))
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="w-[30%] pl-1 flex flex-col justify-start gap-2 py-1">
+                                    <div className="flex flex-col border-2 border-[#306230] p-0.5 rounded-sm">
+                                        <div className="text-[6px] gb-text text-center">SCORE</div>
+                                        <div className="text-[10px] gb-text text-right">{score}</div>
+                                    </div>
+                                    <div className="flex flex-col border-2 border-[#306230] p-0.5 rounded-sm">
+                                        <div className="text-[6px] gb-text text-center">LEVEL</div>
+                                        <div className="text-[10px] gb-text text-right">{level}</div>
+                                    </div>
+                                    <div className="flex flex-col border-2 border-[#306230] p-0.5 rounded-sm">
+                                        <div className="text-[6px] gb-text text-center">LINES</div>
+                                        <div className="text-[10px] gb-text text-right">{lines}</div>
+                                    </div>
+                                    <div className="flex-1"></div>
+                                    <div className="flex flex-col items-center border-2 border-[#306230] p-0.5 rounded-sm mb-2">
+                                        <div className="w-full aspect-square flex items-center justify-center relative bg-[#9bbc0f]/50">
+                                            {nextPiece && (
+                                                <div className="grid gap-0" style={{ gridTemplateColumns: `repeat(${nextPiece.shape[0].length}, 1fr)`, width: '80%' }}>
+                                                    {nextPiece.shape.map((row, r) => row.map((cell, c) => (<div key={`${r}-${c}`} className={`aspect-square ${cell ? 'bg-[#0f380f] shadow-gb-block' : 'transparent'}`}></div>)))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                {paused && <div className="absolute inset-0 bg-[#9ca04c]/90 flex items-center justify-center z-20"><div className="bg-[#0f380f] text-[#9bbc0f] px-4 py-1 font-retro text-xl font-bold tracking-widest uppercase shadow-xl border-2 border-[#306230]">PAUSE</div></div>}
+                                {gameOver && <div className="absolute inset-0 bg-[#9ca04c]/95 flex flex-col items-center justify-center text-[#0f380f] z-20"><h2 className="text-xl font-bold font-retro tracking-widest mb-2 uppercase">Game Over</h2><div className="text-sm font-retro mb-4">SCORE: {score}</div><button onClick={resetGame} className="text-xs border-2 border-[#0f380f] px-3 py-1 hover:bg-[#0f380f] hover:text-[#9bbc0f] font-retro transition-colors uppercase font-bold">Try Again</button></div>}
+                            </div>
+                        </div>
+                        <div className="absolute top-[50%] left-4 font-sans italic font-black text-neutral-400 text-xs tracking-tighter opacity-50 select-none z-0">Nintendo <span className="text-[8px] font-normal not-italic">GAME BOY™</span></div>
+                        <div className="mt-1 mb-1 shrink-0 z-10">
+                             <div className="flex justify-between items-end px-2">
+                                <div className="w-28 h-28 relative">
+                                    <div className="absolute top-0 left-10 w-9 h-28 bg-[#222] rounded-sm shadow-md"></div>
+                                    <div className="absolute top-10 left-0 w-28 h-9 bg-[#222] rounded-sm shadow-md"></div>
+                                    <div className="absolute top-10 left-10 w-9 h-9 bg-[#1a1a1a] rounded-full radial-gradient"></div>
+                                    <button onClick={() => move(-1)} className="absolute top-10 left-0 w-10 h-10 active:bg-white/5 rounded-l-sm z-10"></button>
+                                    <button onClick={() => move(1)} className="absolute top-10 right-0 w-10 h-10 active:bg-white/5 rounded-r-sm z-10"></button>
+                                    <button onClick={rotate} className="absolute top-0 left-10 w-9 h-10 active:bg-white/5 rounded-t-sm z-10"></button>
+                                    <button onClick={() => drop()} className="absolute bottom-0 left-10 w-9 h-10 active:bg-white/5 rounded-b-sm z-10"></button>
+                                </div>
+                                <div className="flex gap-4 mb-4 transform rotate-[-15deg]">
+                                    <div className="flex flex-col items-center"><button onClick={() => drop()} className="w-12 h-12 bg-[#8f182c] rounded-full shadow-lg active:shadow-inset active:translate-y-0.5 border-b-4 border-[#5e0d1a] active:border-b-0"></button><span className="font-sans font-bold text-slate-500 text-xs mt-1">B</span></div>
+                                    <div className="flex flex-col items-center mt-[-10px]"><button onClick={rotate} className="w-12 h-12 bg-[#8f182c] rounded-full shadow-lg active:shadow-inset active:translate-y-0.5 border-b-4 border-[#5e0d1a] active:border-b-0"></button><span className="font-sans font-bold text-slate-500 text-xs mt-1">A</span></div>
+                                </div>
+                             </div>
+                             <div className="flex justify-center gap-6 mt-4">
+                                <div className="flex flex-col items-center transform rotate-[-15deg]"><button onClick={onExit} className="w-14 h-3 bg-slate-700 rounded-full shadow-sm active:bg-slate-800 border-b-2 border-slate-900 active:border-b-0"></button><span className="font-sans font-bold text-slate-500 text-[8px] mt-1 tracking-wider uppercase">Select</span></div>
+                                <div className="flex flex-col items-center transform rotate-[-15deg]"><button onClick={togglePause} className="w-14 h-3 bg-slate-700 rounded-full shadow-sm active:bg-slate-800 border-b-2 border-slate-900 active:border-b-0"></button><span className="font-sans font-bold text-slate-500 text-[8px] mt-1 tracking-wider uppercase">Start</span></div>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // MINESWEEPER LOGIC V2.0 - WIN95 SKIN
+        const Minesweeper = ({ onExit }) => {
+            const [difficulty, setDifficulty] = useState({ size: 9, mines: 10, label: 'Beginner' });
+            const [grid, setGrid] = useState([]);
+            const [gameState, setGameState] = useState('playing'); 
+            const [flags, setFlags] = useState(10);
+            const [firstClick, setFirstClick] = useState(true);
+
+            useEffect(() => { resetGame(); }, [difficulty]);
+
+            const resetGame = () => {
+                const { size, mines } = difficulty;
+                const newGrid = Array(size).fill().map((_, r) => Array(size).fill().map((_, c) => ({ row: r, col: c, isMine: false, isOpen: false, isFlagged: false, count: 0 })));
+                setGrid(newGrid);
+                setGameState('playing');
+                setFlags(mines);
+                setFirstClick(true);
+            };
+
+            const placeMines = (safeRow, safeCol) => {
+                const { size, mines } = difficulty;
+                let minesPlaced = 0;
+                const newGrid = JSON.parse(JSON.stringify(grid));
+                while (minesPlaced < mines) {
+                    const r = Math.floor(Math.random() * size);
+                    const c = Math.floor(Math.random() * size);
+                    if ((r !== safeRow || c !== safeCol) && !newGrid[r][c].isMine) {
+                        newGrid[r][c].isMine = true;
+                        minesPlaced++;
+                    }
+                }
+                for (let r = 0; r < size; r++) {
+                    for (let c = 0; c < size; c++) {
+                        if (!newGrid[r][c].isMine) {
+                            let count = 0;
+                            for (let i = -1; i <= 1; i++) {
+                                for (let j = -1; j <= 1; j++) {
+                                    if (r + i >= 0 && r + i < size && c + j >= 0 && c + j < size && newGrid[r + i][c + j].isMine) count++;
+                                }
+                            }
+                            newGrid[r][c].count = count;
+                        }
+                    }
+                }
+                return newGrid;
+            };
+
+            const handleCellClick = (r, c) => {
+                if (gameState !== 'playing' || grid[r][c].isFlagged || grid[r][c].isOpen) return;
+                let currentGrid = [...grid];
+                if (firstClick) {
+                    currentGrid = placeMines(r, c);
+                    setFirstClick(false);
+                }
+                if (currentGrid[r][c].isMine) {
+                    const finalGrid = currentGrid.map(row => row.map(cell => ({ ...cell, isOpen: true })));
+                    setGrid(finalGrid);
+                    setGameState('lost');
+                } else {
+                    const newGrid = floodFill(currentGrid, r, c);
+                    setGrid(newGrid);
+                    checkWin(newGrid);
+                }
+            };
+
+            const floodFill = (g, r, c) => {
+                const newGrid = JSON.parse(JSON.stringify(g));
+                const stack = [[r, c]];
+                const { size } = difficulty;
+                while (stack.length > 0) {
+                    const [curR, curC] = stack.pop();
+                    if (curR < 0 || curR >= size || curC < 0 || curC >= size || newGrid[curR][curC].isOpen || newGrid[curR][curC].isFlagged) continue;
+                    newGrid[curR][curC].isOpen = true;
+                    if (newGrid[curR][curC].count === 0) {
+                        for (let i = -1; i <= 1; i++) { for (let j = -1; j <= 1; j++) { stack.push([curR + i, curC + j]); } }
+                    }
+                }
+                return newGrid;
+            };
+
+            const toggleFlag = (e, r, c) => {
+                e.preventDefault();
+                if (gameState !== 'playing' || grid[r][c].isOpen) return;
+                const newGrid = JSON.parse(JSON.stringify(grid));
+                newGrid[r][c].isFlagged = !newGrid[r][c].isFlagged;
+                setGrid(newGrid);
+                setFlags(prev => newGrid[r][c].isFlagged ? prev - 1 : prev + 1);
+            };
+
+            const checkWin = (g) => {
+                const { size, mines } = difficulty;
+                let revealed = 0;
+                g.flat().forEach(cell => { if (cell.isOpen) revealed++; });
+                if (revealed === (size * size - mines)) { setGameState('won'); setFlags(0); }
+            };
+
+            const cycleDifficulty = () => {
+                if (difficulty.label === 'Beginner') setDifficulty({ size: 16, mines: 40, label: 'Intermediate' });
+                else setDifficulty({ size: 9, mines: 10, label: 'Beginner' });
+            };
+
+            return (
+                <div className="flex flex-col items-center justify-center w-full h-full animate-fade-in p-2 bg-teal-800 relative">
+                    <button onClick={onExit} className="fixed top-4 left-4 z-50 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white font-bold font-mono text-xs px-4 py-2 rounded-lg border border-white/30 flex items-center gap-2"><IconLogOut size={14}/> EXIT</button>
+
+                    <div className="bg-[#c0c0c0] p-1 shadow-retro-out border-2 border-white border-b-black border-r-black w-full max-w-2xl relative flex flex-col max-h-[90vh]">
+                        <div className="bg-[#000080] px-2 py-1 flex justify-between items-center mb-1 shrink-0">
+                            <div className="text-white font-bold font-sans text-sm tracking-wide">Minesweeper.exe</div>
+                            <button onClick={onExit} className="bg-[#c0c0c0] px-2 text-black font-bold text-xs border border-white border-b-black border-r-black active:border-black active:border-b-white active:border-r-white shadow-bevel-up active:shadow-bevel-down">X</button>
+                        </div>
+
+                        <div className="flex gap-4 px-2 text-xs mb-2 select-none shrink-0">
+                            <button onClick={cycleDifficulty} className="underline hover:bg-blue-800 hover:text-white px-1">Game ({difficulty.label})</button>
+                            <span className="opacity-50">Help</span>
+                        </div>
+
+                        <div className="border-4 border-[#808080] border-l-white border-t-white p-2 mb-2 flex justify-between items-center bg-[#c0c0c0] shrink-0 shadow-bevel-down">
+                            {/* Digital Counter Logic */}
+                            <div className="bg-black text-red-600 font-retro text-3xl px-1 border-2 border-[#808080] border-r-white border-b-white shadow-bevel-field w-20 text-center tracking-widest">{Math.max(0, flags).toString().padStart(3, '0')}</div>
+                            <button onClick={resetGame} className="w-10 h-10 border-2 border-white border-b-[#808080] border-r-[#808080] active:border-[#808080] active:border-b-white active:border-r-white bg-[#c0c0c0] flex items-center justify-center text-xl shadow-bevel-up active:shadow-bevel-down active:translate-y-px">{gameState === 'playing' ? '🙂' : gameState === 'won' ? '😎' : '😵'}</button>
+                            <div className="bg-black text-red-600 font-retro text-3xl px-1 border-2 border-[#808080] border-r-white border-b-white shadow-bevel-field w-20 text-center tracking-widest">999</div>
+                        </div>
+
+                        <div className="border-4 border-[#808080] border-l-white border-t-white p-0.5 bg-[#c0c0c0] relative flex-1 overflow-auto bg-gray-400 shadow-bevel-down">
+                            <div className="grid gap-0 mx-auto" style={{ gridTemplateColumns: `repeat(${difficulty.size}, minmax(0, 1fr))`, width: '100%', maxWidth: '600px', aspectRatio: '1/1' }}>
+                                {grid.map((row, r) => row.map((cell, c) => (
+                                    <div key={`${r}-${c}`} 
+                                        onClick={() => handleCellClick(r, c)}
+                                        onContextMenu={(e) => toggleFlag(e, r, c)}
+                                        className={`w-full h-full flex items-center justify-center font-bold text-sm sm:text-lg cursor-pointer select-none
+                                            ${cell.isOpen 
+                                                ? 'border border-[#808080] border-l-transparent border-t-transparent' 
+                                                : 'border-2 border-white border-b-[#808080] border-r-[#808080] bg-[#c0c0c0] shadow-bevel-up active:shadow-bevel-down'}
+                                            ${cell.isOpen && cell.isMine ? 'bg-red-600' : ''}`}
+                                    >
+                                        {cell.isOpen && !cell.isMine && cell.count > 0 && <span style={{color: ['','blue','green','red','darkblue','brown','cyan','black','gray'][cell.count]}}>{cell.count}</span>}
+                                        {cell.isOpen && cell.isMine && <span className="text-black">💣</span>}
+                                        {!cell.isOpen && cell.isFlagged && <span className="text-red-600 shadow-sm drop-shadow-sm">🚩</span>}
+                                    </div>
+                                )))}
+                            </div>
+                            
+                            {gameState !== 'playing' && (
+                                <div className="absolute inset-0 bg-white/20 backdrop-blur-sm flex items-center justify-center z-20 p-4">
+                                    <div className="bg-[#c0c0c0] p-1 border-2 border-white border-b-black border-r-black shadow-2xl animate-zoom-in">
+                                        <div className="bg-[#000080] px-2 py-1 mb-2 text-white font-bold text-xs">{gameState === 'won' ? 'Success' : 'Failure'}</div>
+                                        <div className="p-6 flex flex-col items-center gap-4">
+                                            <div className="flex gap-4 items-center">
+                                                <span className="text-5xl">{gameState === 'won' ? '🏆' : '💥'}</span>
+                                                <div className="text-center">
+                                                    <h3 className="font-bold text-black text-lg">{gameState === 'won' ? 'MISSION ACCOMPLISHED' : 'SYSTEM CRASHED'}</h3>
+                                                    <p className="text-sm text-gray-600 font-mono">{gameState === 'won' ? 'All mines neutralized.' : 'Fatal exception at 0xDEADBEEF.'}</p>
+                                                </div>
+                                            </div>
+                                            <button onClick={resetGame} className="mt-2 px-6 py-2 border-2 border-white border-b-black border-r-black active:border-black active:border-b-white active:border-r-white bg-[#c0c0c0] text-black text-sm font-bold shadow-bevel-up active:shadow-bevel-down w-full hover:bg-gray-100">RESTART SYSTEM</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MAIN APP ---
 
         function App() {
+            // -- State with Persistence --
             const [view, setView] = useState('home');
             const [inputValue, setInputValue] = useState('');
             const [bgColor, setBgColor] = useState('#cbd5e1');
@@ -90,34 +591,35 @@
             const [imageModel, setImageModel] = useState('flux');
             const [isFullScreen, setIsFullScreen] = useState(false);
             
-            const [accentColor, setAccentColor] = useState(null); 
+            // Initialize from localStorage or default
+            const [accentColor, setAccentColor] = useState(() => {
+                return localStorage.getItem('app_accent_color') || null;
+            }); 
             const [waveIndex, setWaveIndex] = useState(-1);
-            const [showAffiliateModal, setShowAffiliateModal] = useState(false);
             
-            const [chatHistory, setChatHistory] = useState([
-                { role: 'ai', text: "Hello. I am the system AI. Ask me anything.", model: 'system' }
-            ]);
+            const [chatHistory, setChatHistory] = useState(() => {
+                const saved = localStorage.getItem('app_chat_history');
+                return saved ? JSON.parse(saved) : [
+                    { role: 'ai', text: "Hello. I am the system AI. Ask me anything.", model: 'system' }
+                ];
+            });
+
             const [chatInput, setChatInput] = useState('');
             const [isChatLoading, setIsChatLoading] = useState(false);
-            
-            const devLogs = [
-                {
-                    id: 'day1',
-                    date: 'Dec 2, 2025',
-                    title: 'Day 01: Genesis',
-                    summary: 'Initial prototype, AI integration, glassmorphism UI, and haptic engine.',
-                    details: [
-                        "Phase I: Utility - Created basic React color changer.",
-                        "Phase II: Senses - Integrated Pollinations.ai for generative visuals and chat.",
-                        "Phase III: Architecture - Implemented Hub & Spoke navigation with glassmorphism.",
-                        "Phase IV: Identity - Rebranded to 'The Application', added commerce integration.",
-                        "Phase V: Polish - Added haptics, 'Energy Wave' animations, and download features."
-                    ]
-                }
-            ];
 
             const chatEndRef = useRef(null);
             const waveTimersRef = useRef([]);
+
+            // -- Persistence Effects --
+            useEffect(() => {
+                localStorage.setItem('app_chat_history', JSON.stringify(chatHistory));
+            }, [chatHistory]);
+
+            useEffect(() => {
+                if (accentColor) {
+                    localStorage.setItem('app_accent_color', accentColor);
+                }
+            }, [accentColor]);
 
             useEffect(() => {
                 if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -127,23 +629,6 @@
                 if (navigator.vibrate) {
                     navigator.vibrate(15); 
                 }
-                try {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    if (AudioContext) {
-                        const audioCtx = new AudioContext();
-                        const oscillator = audioCtx.createOscillator();
-                        const gainNode = audioCtx.createGain();
-                        oscillator.connect(gainNode);
-                        gainNode.connect(audioCtx.destination);
-                        oscillator.type = 'sine';
-                        oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
-                        oscillator.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
-                        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-                        oscillator.start();
-                        oscillator.stop(audioCtx.currentTime + 0.1);
-                    }
-                } catch (e) {}
             };
 
             const handleArtifactClick = () => {
@@ -154,7 +639,7 @@
                 const randomColor = colors[Math.floor(Math.random() * colors.length)];
                 setAccentColor(randomColor);
                 setWaveIndex(0);
-                const delays = [150, 300, 450, 600, 750];
+                const delays = [150, 300, 450, 600, 750, 900];
                 delays.forEach((delay, idx) => {
                     const timer = setTimeout(() => {
                         setWaveIndex(idx + 1);
@@ -163,7 +648,7 @@
                 });
                 const endTimer = setTimeout(() => {
                     setWaveIndex(-1);
-                }, 1050);
+                }, 1200);
                 waveTimersRef.current.push(endTimer);
             };
 
@@ -271,8 +756,8 @@
                     >
                         <h1 className="font-mono-code text-4xl font-bold text-slate-900 mb-2 drop-shadow-md tracking-tight">The Application</h1>
                         <p className="text-slate-800 font-mono-code font-bold text-xs tracking-wide uppercase mt-4 opacity-80 leading-relaxed">
-                            Beta Version 1.1<br/>
-                            Experimental AI Tools
+                            Beta Version 3.0<br/>
+                            Artifacts Loaded
                         </p>
                     </div>
 
@@ -310,9 +795,25 @@
                         </button>
 
                         <button 
-                            onClick={() => setView('qr')}
+                            onClick={() => setView('games')}
                             className="group relative overflow-hidden bg-white/60 hover:bg-white/80 backdrop-blur-md border border-white/40 p-5 rounded-2xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1 text-left"
                             style={getButtonStyle(3)}
+                        >
+                            <div className="flex items-center gap-4 relative z-10">
+                                <div className="p-3 bg-indigo-600 text-white rounded-full shadow-lg group-hover:scale-110 transition-transform duration-300">
+                                    <IconGamepad size={24} />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold text-slate-900 font-mono-code">Arcade</h2>
+                                    <p className="text-[11px] text-slate-800 font-medium opacity-70 mt-0.5">Downtime Protocols</p>
+                                </div>
+                            </div>
+                        </button>
+
+                        <button 
+                            onClick={() => setView('qr')}
+                            className="group relative overflow-hidden bg-white/60 hover:bg-white/80 backdrop-blur-md border border-white/40 p-5 rounded-2xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1 text-left"
+                            style={getButtonStyle(4)}
                         >
                             <div className="flex items-center gap-4 relative z-10">
                                 <div className="p-3 bg-slate-700 text-white rounded-full shadow-lg group-hover:scale-110 transition-transform duration-300">
@@ -324,29 +825,13 @@
                                 </div>
                             </div>
                         </button>
-
-                        <button 
-                            onClick={() => setView('log')}
-                            className="group relative overflow-hidden bg-white/60 hover:bg-white/80 backdrop-blur-md border border-white/40 p-5 rounded-2xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1 text-left"
-                            style={getButtonStyle(4)}
-                        >
-                            <div className="flex items-center gap-4 relative z-10">
-                                <div className="p-3 bg-emerald-700 text-white rounded-full shadow-lg group-hover:scale-110 transition-transform duration-300">
-                                    <IconFileText size={24} />
-                                </div>
-                                <div>
-                                    <h2 className="text-lg font-bold text-slate-900 font-mono-code">Dev Log</h2>
-                                    <p className="text-[11px] text-slate-800 font-medium opacity-70 mt-0.5">Project History & Updates</p>
-                                </div>
-                            </div>
-                        </button>
                         
                         <button 
-                            onClick={() => setShowAffiliateModal(true)}
+                            onClick={() => window.open("https://augmentedthinker-shop.fourthwall.com/", "_blank")}
                             className="group relative overflow-hidden p-5 rounded-2xl transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1 text-left mt-1 border border-white/20"
                             style={{
-                                ...getButtonStyle(5),
-                                backgroundColor: waveIndex === 5 && accentColor ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.4)', 
+                                ...getButtonStyle(6),
+                                backgroundColor: waveIndex === 6 && accentColor ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.4)', 
                             }}
                         >
                             <div className="absolute inset-0 z-0">
@@ -376,34 +861,6 @@
                             </div>
                         </button>
                     </div>
-
-                    {showAffiliateModal && (
-                        <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in">
-                            <div className="bg-white/90 backdrop-blur-xl border border-white/50 rounded-3xl shadow-2xl overflow-hidden max-w-sm w-full p-6 text-center relative">
-                                <button onClick={() => setShowAffiliateModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 transition-colors">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                                </button>
-                                <div className="mb-6 rounded-2xl overflow-hidden shadow-lg border border-slate-200 relative h-40">
-                                    <img src="https://image.pollinations.ai/prompt/robot%20face%20with%20mustache%20on%20t-shirt%20product%20photography%20studio%20lighting?width=400&height=200&nologo=true" alt="Shop Preview" className="w-full h-full object-cover" />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end justify-center pb-3">
-                                        <span className="text-white text-xs font-bold tracking-widest uppercase opacity-90">Store Preview</span>
-                                    </div>
-                                </div>
-                                <h3 className="text-xl font-bold text-slate-900 font-mono-code mb-2">Leaving Application</h3>
-                                <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-                                    You are now leaving <strong>The Application</strong> to visit the <strong>Augmented Thinker Shop</strong> via an affiliate link.
-                                    <br/><br/>
-                                    While you're there, be sure to check out their signature collection of robot-mustache streetwear and other digital curiosities.
-                                </p>
-                                <div className="flex flex-col gap-3">
-                                    <button onClick={() => { setShowAffiliateModal(false); window.open("https://augmentedthinker-shop.fourthwall.com/", "_blank"); }} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2">
-                                        <span>Proceed to Store</span><IconExternalLink size={16} />
-                                    </button>
-                                    <button onClick={() => setShowAffiliateModal(false)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 px-4 rounded-xl transition-all">Cancel</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
             );
 
@@ -425,45 +882,51 @@
                 }
 
                 return (
-                    <div className="w-full max-w-md p-8 animate-fade-in relative h-full flex flex-col justify-center">
+                    <div className="w-full h-full flex flex-col relative animate-fade-in overflow-y-auto no-scrollbar">
                         {isFullScreen && bgImage && (
                             <div onClick={() => setIsFullScreen(false)} className="fixed inset-0 z-[100] bg-black flex items-center justify-center cursor-pointer animate-zoom-in">
                                 <img src={bgImage} alt="Full Screen Artifact" className="max-w-full max-h-full object-contain" />
                             </div>
                         )}
-                        <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start z-50">
-                            <button onClick={() => setView('home')} className="p-2 bg-white/40 hover:bg-white/60 backdrop-blur-md rounded-xl text-slate-900 shadow-lg border border-white/30 transition-all"><IconArrowLeft size={20} /></button>
+                        <div className="sticky top-0 z-50 p-4 bg-transparent">
+                             <div className="flex justify-between items-start">
+                                <button onClick={() => setView('home')} className="p-2 bg-white/40 hover:bg-white/60 backdrop-blur-md rounded-xl text-slate-900 shadow-lg border border-white/30 transition-all"><IconArrowLeft size={20} /></button>
+                             </div>
                         </div>
-                        <div className="mb-8 text-center bg-white/20 backdrop-blur-md border border-white/30 p-6 rounded-2xl shadow-xl transition-all duration-500"
-                            style={{
-                                borderColor: accentColor ? accentColor + '60' : 'rgba(255, 255, 255, 0.3)',
-                                boxShadow: accentColor ? `0 0 20px ${accentColor}20` : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                                backgroundColor: accentColor ? accentColor + '10' : 'rgba(255, 255, 255, 0.2)'
-                            }}
-                        >
-                            <div onClick={() => bgImage && setIsFullScreen(true)} className={`inline-flex items-center justify-center w-24 h-24 rounded-full bg-slate-900/80 text-white mb-4 shadow-xl ring-4 ring-white/20 backdrop-blur-sm overflow-hidden transition-all duration-500 ${bgImage ? 'cursor-pointer hover:scale-105 active:scale-95' : ''}`} style={previewStyle} title={bgImage ? "Tap to view full screen" : ""}>
-                                {circleContent}
+
+                        <div className="w-full max-w-md p-8 pt-0 flex flex-col items-center">
+                            <div className="w-full mb-6 text-center bg-white/20 backdrop-blur-md border border-white/30 p-6 rounded-2xl shadow-xl transition-all duration-500"
+                                style={{
+                                    borderColor: accentColor ? accentColor + '60' : 'rgba(255, 255, 255, 0.3)',
+                                    boxShadow: accentColor ? `0 0 20px ${accentColor}20` : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                                    backgroundColor: accentColor ? accentColor + '10' : 'rgba(255, 255, 255, 0.2)'
+                                }}
+                            >
+                                <div onClick={() => bgImage && setIsFullScreen(true)} className={`inline-flex items-center justify-center w-24 h-24 rounded-full bg-slate-900/80 text-white mb-4 shadow-xl ring-4 ring-white/20 backdrop-blur-sm overflow-hidden transition-all duration-500 ${bgImage ? 'cursor-pointer hover:scale-105 active:scale-95' : ''}`} style={previewStyle} title={bgImage ? "Tap to view full screen" : ""}>
+                                    {circleContent}
+                                </div>
+                                <h2 className="text-3xl font-bold text-slate-900 drop-shadow-md font-mono-code">Dreamscape</h2>
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-900/10 rounded-full border border-slate-900/10 mb-2 mt-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span className="text-[10px] font-bold tracking-wider uppercase text-slate-700">Model: {imageModel.toUpperCase()}</span>
+                                </div>
+                                <p className="text-slate-800 font-medium opacity-80 mt-2 text-sm leading-relaxed">Type a vision to transform your reality. Tap the circle to expand.</p>
                             </div>
-                            <h2 className="text-3xl font-bold text-slate-900 drop-shadow-md font-mono-code">Dreamscape</h2>
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-900/10 rounded-full border border-slate-900/10 mb-2 mt-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                <span className="text-[10px] font-bold tracking-wider uppercase text-slate-700">Model: {imageModel.toUpperCase()}</span>
-                            </div>
-                            <p className="text-slate-800 font-medium opacity-80 mt-2 text-sm leading-relaxed">Type a vision to transform your reality. Tap the circle to expand.</p>
-                        </div>
-                        <form onSubmit={handleVisualSubmit} className="space-y-4">
-                            <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} disabled={isLoading} placeholder="What do you want to see?" className="w-full px-5 py-4 bg-white/30 border border-white/20 rounded-2xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all outline-none text-slate-900 placeholder:text-slate-700 font-bold shadow-inner backdrop-blur-sm text-lg" />
-                            <div className="flex gap-2">
-                                <button type="submit" disabled={isLoading || !inputValue} className="flex-1 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-700 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 text-lg">
-                                    {isLoading ? <span>Generating...</span> : <><span>Generate</span><IconSend size={20} /></>}
-                                </button>
-                                {bgImage && (
-                                    <button type="button" onClick={handleDownload} className="bg-white/40 hover:bg-white/60 border border-white/30 text-slate-900 font-bold py-4 px-6 rounded-2xl transition-all duration-200 transform hover:scale-[1.05] active:scale-[0.95] shadow-lg flex items-center justify-center" title="Download Image">
-                                        <IconDownload size={24} />
+                            
+                            <form onSubmit={handleVisualSubmit} className="space-y-4 w-full">
+                                <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} disabled={isLoading} placeholder="What do you want to see?" className="w-full px-5 py-4 bg-white/30 border border-white/20 rounded-2xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all outline-none text-slate-900 placeholder:text-slate-700 font-bold shadow-inner backdrop-blur-sm text-lg" />
+                                <div className="flex gap-2">
+                                    <button type="submit" disabled={isLoading || !inputValue} className="flex-1 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-700 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 text-lg">
+                                        {isLoading ? <span>Generating...</span> : <><span>Generate</span><IconSend size={20} /></>}
                                     </button>
-                                )}
-                            </div>
-                        </form>
+                                    {bgImage && (
+                                        <button type="button" onClick={handleDownload} className="bg-white/40 hover:bg-white/60 border border-white/30 text-slate-900 font-bold py-4 px-6 rounded-2xl transition-all duration-200 transform hover:scale-[1.05] active:scale-[0.95] shadow-lg flex items-center justify-center" title="Download Image">
+                                            <IconDownload size={24} />
+                                        </button>
+                                    )}
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 );
             };
@@ -505,39 +968,61 @@
                 </div>
             );
 
-            const renderLog = () => (
-                <div className="w-full h-full flex flex-col animate-fade-in relative">
-                    <div className="flex items-center justify-between p-4 border-b border-white/20 bg-white/40 backdrop-blur-md">
-                        <button onClick={() => setView('home')} className="p-2 bg-white/40 hover:bg-white/60 backdrop-blur-md rounded-xl text-slate-900 shadow-sm border border-white/30 transition-all flex items-center gap-2">
-                            <IconArrowLeft size={18} />
-                            <span className="text-xs font-bold">Home</span>
+            const renderGamesMenu = () => (
+                <div className="w-full max-w-md p-8 animate-fade-in relative h-full flex flex-col justify-center items-center">
+                    <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start z-50">
+                        <button onClick={() => setView('home')} className="p-2 bg-white/40 hover:bg-white/60 backdrop-blur-md rounded-xl text-slate-900 shadow-lg border border-white/30 transition-all">
+                            <IconArrowLeft size={20} />
                         </button>
-                        <div className="bg-white/40 backdrop-blur-sm px-3 py-1 rounded-full border border-white/20">
-                            <span className="text-slate-900 font-bold drop-shadow-sm text-sm font-mono-code">System Log</span>
-                        </div>
-                        <div className="w-8"></div>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
-                        {devLogs.map((log) => (
-                            <div key={log.id} className="bg-white/60 backdrop-blur-md border border-white/40 rounded-2xl p-6 shadow-sm">
-                                <div className="flex justify-between items-start mb-3 border-b border-slate-900/10 pb-3">
-                                    <h3 className="text-lg font-bold text-slate-900 font-mono-code">{log.title}</h3>
-                                    <span className="text-xs font-mono text-slate-500 bg-white/50 px-2 py-1 rounded">{log.date}</span>
-                                </div>
-                                <p className="text-sm text-slate-700 mb-4 italic">{log.summary}</p>
-                                <ul className="space-y-2">
-                                    {log.details.map((detail, idx) => (
-                                        <li key={idx} className="text-xs text-slate-600 font-mono flex items-start gap-2">
-                                            <span className="text-emerald-600 mt-0.5">➜</span>
-                                            {detail}
-                                        </li>
-                                    ))}
-                                </ul>
+                    <div className="w-full text-center mb-8">
+                         <h1 className="text-4xl font-black text-slate-900 font-mono-code mb-2 tracking-tighter">ARCADE<span className="text-emerald-600">.CORE</span></h1>
+                         <p className="text-slate-600 text-xs font-mono uppercase tracking-widest">Select Simulation</p>
+                    </div>
+
+                    <div className="grid gap-6 w-full">
+                        <button 
+                            onClick={() => setView('game-tetris')}
+                            className="bg-neutral-800 hover:bg-neutral-700 text-white p-6 rounded-lg shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group border-2 border-neutral-600"
+                        >
+                            <div className="absolute inset-0 z-0 opacity-40 group-hover:opacity-60 transition-opacity">
+                                <img src="https://image.pollinations.ai/prompt/Game%20Boy%20Tetris%20cartridge%20cover%20art%20pixel%20style%20purple%20blocks%20falling%20in%20space?width=400&height=200&nologo=true" alt="Tetris Art" className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-transparent"></div>
                             </div>
-                        ))}
+                            <div className="flex items-center gap-4 relative z-10">
+                                <div className="p-3 bg-neutral-900 rounded border border-neutral-600 shadow-xl">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-400"><path d="M4 4h4v4H4zM4 8h4v4H4zM4 12h4v4H4zM8 12h4v4H8z"/></svg>
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="text-lg font-bold font-mono-code tracking-tight text-white drop-shadow-md">GAME BOY TETRIS</h3>
+                                    <p className="text-[10px] text-neutral-300 mt-1 uppercase tracking-wider font-bold">Handheld Emulator</p>
+                                </div>
+                            </div>
+                        </button>
+
+                        <button 
+                            onClick={() => setView('game-minesweeper')}
+                            className="bg-slate-300 hover:bg-slate-200 text-slate-900 p-6 rounded-sm shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] border-t-2 border-l-2 border-white border-b-2 border-r-2 border-slate-500 relative overflow-hidden group"
+                        >
+                            <div className="absolute inset-0 z-0 opacity-40 group-hover:opacity-60 transition-opacity">
+                                <img src="https://image.pollinations.ai/prompt/classic%20minesweeper%20game%20grid%20close%20up%20pixel%20art%20retro%20pc%20aesthetic?width=400&height=200&nologo=true" alt="Minesweeper Art" className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-gradient-to-r from-white/80 via-white/40 to-transparent"></div>
+                            </div>
+                            <div className="flex items-center gap-4 relative z-10">
+                                <div className="p-3 bg-[#c0c0c0] border-2 border-white border-b-slate-500 border-r-slate-500 shadow-bevel-up">
+                                    <IconGrid size={24} className="text-black"/>
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="text-lg font-bold font-mono tracking-tight text-slate-900 drop-shadow-sm">MINESWEEPER</h3>
+                                    <p className="text-[10px] text-slate-700 mt-1 uppercase tracking-wider font-bold">Windows 95 Classic</p>
+                                </div>
+                            </div>
+                        </button>
                     </div>
                 </div>
             );
+
+            const renderLog = () => null; // Placeholder if needed, but feature removed
 
             const renderQR = () => (
                 <div className="w-full max-w-md p-8 animate-fade-in relative h-full flex flex-col justify-center items-center">
@@ -565,21 +1050,34 @@
                 </div>
             );
 
+            // Dynamic Container Logic for Mobile
+            const getContainerClass = () => {
+                if (view === 'chat' || view === 'log') return 'h-[92dvh] max-w-lg'; 
+                if (view === 'home') return 'h-auto max-h-[90dvh] py-8 max-w-md overflow-y-auto no-scrollbar'; 
+                if (view === 'visual') return 'h-[92dvh] max-w-md';
+                // Full screen override for games
+                if (view.startsWith('game-')) return 'h-[100dvh] w-full max-w-none bg-transparent shadow-none border-none';
+                return 'max-w-md min-h-[500px]';
+            };
+
             return (
-                <div className="relative min-h-screen w-full flex flex-col items-center justify-center transition-all duration-700 ease-in-out overflow-hidden bg-cover bg-center bg-no-repeat"
+                <div className="relative min-h-[100dvh] w-full flex flex-col items-center justify-center transition-all duration-700 ease-in-out overflow-hidden bg-cover bg-center bg-no-repeat"
                     style={{ backgroundColor: bgColor, backgroundImage: bgImage ? `url(${bgImage})` : 'none' }}>
                     {bgImage && <div className="absolute inset-0 bg-black/40 transition-opacity duration-700"></div>}
-                    <div className={`relative z-10 bg-white/10 backdrop-blur-md rounded-3xl shadow-2xl w-full border border-white/20 transition-all duration-500 flex flex-col overflow-hidden ${view === 'chat' || view === 'log' ? 'h-[85vh] max-w-lg' : view === 'home' ? 'h-auto py-12 max-w-md' : 'max-w-md min-h-[500px]'}`}
-                        style={{
+                    <div className={`relative z-10 bg-white/10 backdrop-blur-md rounded-3xl shadow-2xl w-full border border-white/20 transition-all duration-500 flex flex-col overflow-hidden ${getContainerClass()}`}
+                        style={!view.startsWith('game-') ? {
                             borderColor: accentColor ? accentColor : 'rgba(255, 255, 255, 0.2)',
                             boxShadow: accentColor ? `0 0 30px ${accentColor}30` : '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                        }}
+                        } : {}}
                     >
                         {view === 'home' && renderHome()}
                         {view === 'visual' && renderVisual()}
                         {view === 'chat' && renderChat()}
                         {view === 'qr' && renderQR()}
-                        {view === 'log' && renderLog()}
+                        {/* renderLog Removed from view switch */}
+                        {view === 'games' && renderGamesMenu()}
+                        {view === 'game-tetris' && <Tetris onExit={() => setView('games')} accentColor={accentColor} />}
+                        {view === 'game-minesweeper' && <Minesweeper onExit={() => setView('games')} />}
                     </div>
                 </div>
             );
