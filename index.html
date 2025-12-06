@@ -64,7 +64,7 @@
         .digital-font { font-family: 'VT323', monospace; letter-spacing: 2px; }
     </style>
 </head>
-<body class="bg-gray-200 text-slate-900 overflow-hidden fixed inset-0">
+<body class="bg-black text-slate-900 overflow-hidden fixed inset-0">
 
     <div id="root"></div>
 
@@ -74,6 +74,7 @@
         // --- Icons ---
         const IconPalette = ({ size=24, className="" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>;
         const IconSend = ({ size=24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
+        const IconX = ({ size=24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
         const IconImage = ({ size=24 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>;
         const IconLoader = ({ size=24, className="" }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>;
         const IconMessageSquare = ({ size=20 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>;
@@ -297,7 +298,8 @@
                 }
             };
 
-            const drop = () => {
+            // Renamed existing drop to hardDrop (internal logic if needed later)
+            const hardDrop = () => {
                  if (gameOverRef.current || pausedRef.current) return;
                  let dropY = 0;
                  while (!checkCollision(activePieceRef.current, gridRef.current, 0, dropY + 1)) {
@@ -308,6 +310,15 @@
                     setActivePiece(activePieceRef.current);
                     lockPiece();
                  }
+            };
+
+            // New softDrop for down arrow
+            const softDrop = () => {
+                if (gameOverRef.current || pausedRef.current) return;
+                if (!checkCollision(activePieceRef.current, gridRef.current, 0, 1)) {
+                    activePieceRef.current = { ...activePieceRef.current, y: activePieceRef.current.y + 1 };
+                    setActivePiece(activePieceRef.current);
+                }
             };
 
             const togglePause = () => {
@@ -397,10 +408,10 @@
                                     <button onClick={() => move(-1)} className="absolute top-10 left-0 w-10 h-10 active:bg-white/5 rounded-l-sm z-10"></button>
                                     <button onClick={() => move(1)} className="absolute top-10 right-0 w-10 h-10 active:bg-white/5 rounded-r-sm z-10"></button>
                                     <button onClick={rotate} className="absolute top-0 left-10 w-9 h-10 active:bg-white/5 rounded-t-sm z-10"></button>
-                                    <button onClick={() => drop()} className="absolute bottom-0 left-10 w-9 h-10 active:bg-white/5 rounded-b-sm z-10"></button>
+                                    <button onClick={() => softDrop()} className="absolute bottom-0 left-10 w-9 h-10 active:bg-white/5 rounded-b-sm z-10"></button>
                                 </div>
                                 <div className="flex gap-4 mb-4 transform rotate-[-15deg]">
-                                    <div className="flex flex-col items-center"><button onClick={() => drop()} className="w-12 h-12 bg-[#8f182c] rounded-full shadow-lg active:shadow-inset active:translate-y-0.5 border-b-4 border-[#5e0d1a] active:border-b-0"></button><span className="font-sans font-bold text-slate-500 text-xs mt-1">B</span></div>
+                                    <div className="flex flex-col items-center"><button onClick={() => move(0)} className="w-12 h-12 bg-[#8f182c] rounded-full shadow-lg active:shadow-inset active:translate-y-0.5 border-b-4 border-[#5e0d1a] active:border-b-0"></button><span className="font-sans font-bold text-slate-500 text-xs mt-1">B</span></div>
                                     <div className="flex flex-col items-center mt-[-10px]"><button onClick={rotate} className="w-12 h-12 bg-[#8f182c] rounded-full shadow-lg active:shadow-inset active:translate-y-0.5 border-b-4 border-[#5e0d1a] active:border-b-0"></button><span className="font-sans font-bold text-slate-500 text-xs mt-1">A</span></div>
                                 </div>
                              </div>
@@ -538,12 +549,18 @@
                         </div>
 
                         <div className="border-4 border-[#808080] border-l-white border-t-white p-0.5 bg-[#c0c0c0] relative flex-1 overflow-auto bg-gray-400 shadow-bevel-down">
-                            <div className="grid gap-0 mx-auto" style={{ gridTemplateColumns: `repeat(${difficulty.size}, minmax(0, 1fr))`, width: '100%', maxWidth: '600px', aspectRatio: '1/1' }}>
+                            <div className="grid gap-0 mx-auto" style={{ 
+                                gridTemplateColumns: `repeat(${difficulty.size}, minmax(0, 1fr))`, 
+                                gridTemplateRows: `repeat(${difficulty.size}, minmax(0, 1fr))`,
+                                width: '100%', 
+                                maxWidth: '600px', 
+                                aspectRatio: '1/1' 
+                            }}>
                                 {grid.map((row, r) => row.map((cell, c) => (
                                     <div key={`${r}-${c}`} 
                                         onClick={() => handleCellClick(r, c)}
                                         onContextMenu={(e) => toggleFlag(e, r, c)}
-                                        className={`w-full h-full flex items-center justify-center font-bold text-sm sm:text-lg cursor-pointer select-none
+                                        className={`w-full h-full flex items-center justify-center font-bold text-sm sm:text-lg cursor-pointer select-none overflow-hidden
                                             ${cell.isOpen 
                                                 ? 'border border-[#808080] border-l-transparent border-t-transparent' 
                                                 : 'border-2 border-white border-b-[#808080] border-r-[#808080] bg-[#c0c0c0] shadow-bevel-up active:shadow-bevel-down'}
@@ -579,13 +596,73 @@
             );
         };
 
+        // --- VISUAL EFFECTS ---
+
+        const MatrixRain = ({ color }) => {
+            const canvasRef = useRef(null);
+            const colorRef = useRef(color);
+
+            // Update ref when prop changes to keep animation loop smooth without resets
+            useEffect(() => {
+                colorRef.current = color;
+            }, [color]);
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                
+                const resizeCanvas = () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                };
+                
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+
+                const fontSize = 14;
+                const columns = Math.ceil(canvas.width / fontSize);
+                const drops = Array(columns).fill(1);
+                // Katakana + Latin + Numbers
+                const chars = "ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ123457890ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+                const draw = () => {
+                    // Translucent black trail
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Use current accent color or default Green
+                    ctx.fillStyle = colorRef.current || '#0F0';
+                    ctx.font = `${fontSize}px monospace`;
+
+                    for (let i = 0; i < drops.length; i++) {
+                        const text = chars[Math.floor(Math.random() * chars.length)];
+                        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                            drops[i] = 0;
+                        }
+                        drops[i]++;
+                    }
+                };
+
+                const interval = setInterval(draw, 33);
+
+                return () => {
+                    clearInterval(interval);
+                    window.removeEventListener('resize', resizeCanvas);
+                };
+            }, []);
+
+            return <canvas ref={canvasRef} className="absolute inset-0 z-0 opacity-30 pointer-events-none mix-blend-screen" />;
+        };
+
         // --- MAIN APP ---
 
         function App() {
             // -- State with Persistence --
             const [view, setView] = useState('home');
             const [inputValue, setInputValue] = useState('');
-            const [bgColor, setBgColor] = useState('#cbd5e1');
+            const [bgColor, setBgColor] = useState('#000000');
             const [bgImage, setBgImage] = useState(null);
             const [isLoading, setIsLoading] = useState(false);
             const [imageModel, setImageModel] = useState('flux');
@@ -870,12 +947,12 @@
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                     backgroundColor: '#000'
-                } : (bgColor && bgColor !== '#cbd5e1') ? { backgroundColor: bgColor } : {};
+                } : (bgColor && bgColor !== '#000000') ? { backgroundColor: bgColor } : {};
 
                 let circleContent;
                 if (isLoading) {
                     circleContent = <IconLoader size={32} className="animate-spin text-white" />;
-                } else if (!bgImage && (!bgColor || bgColor === '#cbd5e1')) {
+                } else if (!bgImage && (!bgColor || bgColor === '#000000')) {
                     circleContent = <IconPalette size={32} className="text-white" />;
                 } else {
                     circleContent = null;
@@ -884,8 +961,22 @@
                 return (
                     <div className="w-full h-full flex flex-col relative animate-fade-in overflow-y-auto no-scrollbar">
                         {isFullScreen && bgImage && (
-                            <div onClick={() => setIsFullScreen(false)} className="fixed inset-0 z-[100] bg-black flex items-center justify-center cursor-pointer animate-zoom-in">
-                                <img src={bgImage} alt="Full Screen Artifact" className="max-w-full max-h-full object-contain" />
+                            <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center animate-zoom-in">
+                                <button 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsFullScreen(false);
+                                    }}
+                                    className="absolute top-6 right-6 z-[101] p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md border border-white/20 transition-all shadow-lg active:scale-95"
+                                >
+                                    <IconX size={24} />
+                                </button>
+                                <img 
+                                    src={bgImage} 
+                                    alt="Full Screen Artifact" 
+                                    className="max-w-full max-h-full object-contain cursor-zoom-out p-1" 
+                                    onClick={() => setIsFullScreen(false)}
+                                />
                             </div>
                         )}
                         <div className="sticky top-0 z-50 p-4 bg-transparent">
@@ -975,9 +1066,11 @@
                             <IconArrowLeft size={20} />
                         </button>
                     </div>
-                    <div className="w-full text-center mb-8">
-                         <h1 className="text-4xl font-black text-slate-900 font-mono-code mb-2 tracking-tighter">ARCADE<span className="text-emerald-600">.CORE</span></h1>
-                         <p className="text-slate-600 text-xs font-mono uppercase tracking-widest">Select Simulation</p>
+                    <div className="w-full text-center mb-8 flex flex-col items-center">
+                         <div className="bg-white/90 backdrop-blur-md px-8 py-2 rounded-xl border border-white/50 shadow-xl mb-2 transform -rotate-1">
+                            <h1 className="text-4xl font-black text-slate-900 font-mono-code tracking-tighter">ARCADE</h1>
+                         </div>
+                         <p className="text-white/80 text-xs font-mono uppercase tracking-widest font-bold drop-shadow-sm">Select Game</p>
                     </div>
 
                     <div className="grid gap-6 w-full">
@@ -1063,10 +1156,13 @@
             return (
                 <div className="relative min-h-[100dvh] w-full flex flex-col items-center justify-center transition-all duration-700 ease-in-out overflow-hidden bg-cover bg-center bg-no-repeat"
                     style={{ backgroundColor: bgColor, backgroundImage: bgImage ? `url(${bgImage})` : 'none' }}>
+                    
+                    {!bgImage && <MatrixRain color={accentColor} />}
+                    
                     {bgImage && <div className="absolute inset-0 bg-black/40 transition-opacity duration-700"></div>}
-                    <div className={`relative z-10 bg-white/10 backdrop-blur-md rounded-3xl shadow-2xl w-full border border-white/20 transition-all duration-500 flex flex-col overflow-hidden ${getContainerClass()}`}
+                    <div className={`relative z-10 bg-white/5 backdrop-blur-sm rounded-3xl shadow-2xl w-full border border-white/10 transition-all duration-500 flex flex-col overflow-hidden ${getContainerClass()}`}
                         style={!view.startsWith('game-') ? {
-                            borderColor: accentColor ? accentColor : 'rgba(255, 255, 255, 0.2)',
+                            borderColor: accentColor ? accentColor : 'rgba(255, 255, 255, 0.1)',
                             boxShadow: accentColor ? `0 0 30px ${accentColor}30` : '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                         } : {}}
                     >
